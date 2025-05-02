@@ -5,17 +5,9 @@ import { GitHubSetup } from './GitHubSetup';
 const AuthPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const handleSetupComplete = (
-    repoUrl: string,
-    accessToken: string,
-    metadata: any
-  ) => {
+  const handleSetupComplete = (data: any) => {
     // Store the authentication data in localStorage
-    localStorage.setItem('repoConfig', JSON.stringify({
-      repoUrl,
-      accessToken,
-      metadata
-    }));
+    localStorage.setItem('repoConfig', JSON.stringify(data));
     // Navigate to the speech recognition page
     navigate('/speech');
   };
