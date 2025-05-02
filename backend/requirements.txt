@@ -21,8 +21,8 @@ decorator==5.2.1
 Deprecated==1.2.18
 dnspython==2.7.0
 ecdsa==0.19.1
-fastapi==0.115.12
-fastrtc==0.0.20
+fastapi
+fastrtc
 ffmpy==0.5.0
 filelock==3.18.0
 fonttools==4.57.0
@@ -34,11 +34,9 @@ google-api-python-client==2.166.0
 google-auth==2.38.0
 google-auth-httplib2==0.2.0
 google-crc32c==1.7.1
-google-genai==1.10.0
+google-genai
 google-generativeai==0.8.4
 googleapis-common-protos==1.69.2
-gradio==5.25.0
-gradio_client==1.8.0
 groovy==0.1.2
 grpcio==1.72.0rc1
 grpcio-status==1.71.0
