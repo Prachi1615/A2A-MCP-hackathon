@@ -119,13 +119,18 @@ def main():
     text_analysis = text_agent.analyze_text(repo_data)
     print(text_analysis)
 
-    # Initialize test data
-    test_code_files = [
-        {
-            'path': 'test.py',
-            'content': 'def test():\n    return True\n'
-        }
-    ]
+    # Get real repository files
+    try:
+        code_files = github_agent.get_file_content(TEST_OWNER, TEST_REPO, 'setup.py')
+        if code_files and isinstance(code_files, dict) and 'content' in code_files:
+            test_code_files = [{'path': 'setup.py', 'content': code_files['content']}]
+            print(f"Successfully fetched setup.py ({len(code_files['content'])} characters)")
+        else:
+            print("Using fallback test file")
+            test_code_files = [{'path': 'test.py', 'content': 'def test():\n    return True\n'}]
+    except Exception as e:
+        print(f"Error fetching repository files: {e}")
+        test_code_files = [{'path': 'test.py', 'content': 'def test():\n    return True\n'}]
     
     # Run tests for each agent
     print("\n=== Starting Agent Tests ===")
