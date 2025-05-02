@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
-import VoiceChat from './VoiceChat';
+import VapiChat from './VapiChat';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +10,15 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, apiKey }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Get repository configuration for context
+  const getRepoConfig = () => {
+    const config = localStorage.getItem('repoConfig');
+    return config ? JSON.parse(config) : null;
+  };
+
+  const repoConfig = getRepoConfig();
+  const context = repoConfig?.metadata?.description || '';
 
   return (
     <Box sx={{ 
@@ -40,7 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ children, apiKey }) => {
         flexDirection: 'column',
         justifyContent: 'center'
       }}>
-        <VoiceChat apiKey={apiKey} />
+        <VapiChat apiKey={apiKey} context={context} />
       </Box>
     </Box>
   );
