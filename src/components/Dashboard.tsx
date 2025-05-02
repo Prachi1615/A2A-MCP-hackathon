@@ -16,6 +16,8 @@ import {
   BarChart,
   Bar
 } from 'recharts';
+import ReactMarkdown from 'react-markdown';
+import { Components } from 'react-markdown';
 
 interface RepoData {
   commits: Array<{ date: string; count: number }>;
@@ -23,13 +25,26 @@ interface RepoData {
   contributors: Array<{ name: string; commits: number }>;
 }
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  markdownContent?: string;
+  isLoading?: boolean;
+}
+
+interface CodeProps {
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ 
+  markdownContent = '', 
+  isLoading = false 
+}) => {
   const [repoData, setRepoData] = useState<RepoData>({
     commits: [],
     languages: [],
     contributors: []
   });
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchRepoData = async () => {
@@ -63,8 +78,6 @@ const Dashboard: React.FC = () => {
         setRepoData(mockData);
       } catch (error) {
         console.error('Error fetching repository data:', error);
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -79,67 +92,53 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  const components: Components = {
+    h1: ({ node, ...props }) => <Typography variant="h4" gutterBottom {...props} />,
+    h2: ({ node, ...props }) => <Typography variant="h5" gutterBottom {...props} />,
+    h3: ({ node, ...props }) => <Typography variant="h6" gutterBottom {...props} />,
+    h4: ({ node, ...props }) => <Typography variant="subtitle1" gutterBottom {...props} />,
+    h5: ({ node, ...props }) => <Typography variant="subtitle2" gutterBottom {...props} />,
+    h6: ({ node, ...props }) => <Typography variant="subtitle2" gutterBottom {...props} />,
+    p: ({ node, ...props }) => <Typography variant="body1" paragraph {...props} />,
+    li: ({ node, ...props }) => <Typography component="li" variant="body1" {...props} />,
+    code: ({ inline, className, children, ...props }: CodeProps) => (
+      <Box
+        component="code"
+        sx={{
+          backgroundColor: 'grey.100',
+          p: inline ? 0.5 : 2,
+          borderRadius: 1,
+          display: inline ? 'inline' : 'block',
+          fontFamily: 'monospace',
+          whiteSpace: 'pre-wrap',
+          overflowX: 'auto'
+        }}
+        {...props}
+      >
+        {children}
+      </Box>
+    ),
+    pre: ({ node, ...props }) => (
+      <Box
+        component="pre"
+        sx={{
+          backgroundColor: 'grey.100',
+          p: 2,
+          borderRadius: 1,
+          overflowX: 'auto'
+        }}
+        {...props}
+      />
+    ),
+  };
+
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Repository Analytics
-      </Typography>
-
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-        {/* Commits Over Time */}
-        <Box sx={{ flexGrow: 1, width: { xs: '100%', md: 'calc(66.666% - 12px)' } }}>
-          <Paper sx={{ p: 2, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              Commits Over Time
-            </Typography>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={repoData.commits}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#8884d8" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Box>
-
-        {/* Language Distribution */}
-        <Box sx={{ flexGrow: 1, width: { xs: '100%', md: 'calc(33.333% - 12px)' } }}>
-          <Paper sx={{ p: 2, height: 400 }}>
-            <Typography variant="h6" gutterBottom>
-              Language Distribution
-            </Typography>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={repoData.languages}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="percentage" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Box>
-
-        {/* Top Contributors */}
-        <Box sx={{ flexGrow: 1, width: '100%' }}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Top Contributors
-            </Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={repoData.contributors}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="commits" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Box>
-      </Box>
+      <Paper sx={{ p: 3 }}>
+        <ReactMarkdown components={components}>
+          {markdownContent}
+        </ReactMarkdown>
+      </Paper>
     </Box>
   );
 };
