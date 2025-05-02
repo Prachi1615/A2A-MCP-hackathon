@@ -3,7 +3,7 @@
 
 import os
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from github import Github
 import time
 
@@ -41,22 +41,24 @@ class GitHubDataFetcherAgent:
 
         # Configure rate limit handling
         self.rate_limit_remaining = 5000
-        self.rate_limit_reset = datetime.now()
+        self.rate_limit_reset = datetime.now(timezone.utc)
         
         # Initialize rate limit info if possible
         if self.github:
             try:
-                rate_limit = self.github.get_rate_limit()
-                self.rate_limit_remaining = rate_limit.core.remaining
-                self.rate_limit_reset = datetime.fromtimestamp(rate_limit.core.reset)
+                # Test the token by making a simple API call
+                user = self.github.get_user().login
+                print(f"Successfully authenticated as: {user}")
             except Exception as e:
-                print(f"Warning: Could not get initial rate limit from PyGithub: {e}")
+                print(f"Warning: Could not authenticate with GitHub: {e}")
+
+                self.rate_limit_reset = datetime.now(timezone.utc)
 
     def _check_rate_limit(self):
         """Check API rate limit and wait if necessary."""
         if self.rate_limit_remaining <= 10:
             reset_time = self.rate_limit_reset
-            current_time = datetime.now()
+            current_time = datetime.now(timezone.utc)
             if reset_time > current_time:
                 wait_time = (reset_time - current_time).total_seconds() + 10
                 print(f"Rate limit nearly exhausted. Waiting {wait_time:.0f} seconds for reset.")
@@ -66,7 +68,7 @@ class GitHubDataFetcherAgent:
         if response.status_code == 200:
             rate_data = response.json()
             self.rate_limit_remaining = rate_data["resources"]["core"]["remaining"]
-            self.rate_limit_reset = datetime.fromtimestamp(rate_data["resources"]["core"]["reset"])
+            self.rate_limit_reset = datetime.fromtimestamp(rate_data["resources"]["core"]["reset"], tz=timezone.utc)
 
     def fetch_repo_data(self, owner, repo):
         """Fetch all relevant data about a repository."""
@@ -175,35 +177,36 @@ class GitHubDataFetcherAgent:
             print(f"Error getting commits: {str(e)}")
             return []
 
-    def get_recent_issues(self, owner, repo, state="all", days=30):
-        """Get recent issues from the repository."""
+    def fetch_recent_pull_requests(self, owner, repo, days_back=30, max_prs=100):
+        """Fetch recent pull requests from the repository."""
         try:
             github_repo = self.github.get_repo(f"{owner}/{repo}")
-            since = datetime.now() - timedelta(days=days)
-            issues = github_repo.get_issues(state=state, since=since)
-            result = []
-            for issue in issues:
-                if not issue.pull_request:  # Exclude pull requests
-                    result.append({
-                        "number": issue.number,
-                        "title": issue.title,
-                        "state": issue.state,
-                        "created_at": issue.created_at.isoformat(),
-                        "updated_at": issue.updated_at.isoformat(),
-                        "closed_at": issue.closed_at.isoformat() if issue.closed_at else None,
-                        "author": issue.user.login,
-                        "url": issue.html_url
-                    })
-            return result
+            since = datetime.now(tz=tz.tzutc()) - timedelta(days=days_back)
+            prs = github_repo.get_pulls(state='all', sort='created', direction='desc')
+            recent_prs = []
+            for pr in prs:
+                if pr.created_at < since or len(recent_prs) >= max_prs:
+                    break
+                recent_prs.append({
+                    'number': pr.number,
+                    'title': pr.title,
+                    'state': pr.state,
+                    'created_at': pr.created_at.replace(tzinfo=tz.tzutc()),
+                    'updated_at': pr.updated_at.replace(tzinfo=tz.tzutc()) if pr.updated_at else None,
+                    'merged_at': pr.merged_at.replace(tzinfo=tz.tzutc()) if pr.merged_at else None,
+                    'author': pr.user.login if pr.user else None,
+                    'url': pr.html_url
+                })
+            return recent_prs
         except Exception as e:
-            print(f"Error getting issues: {str(e)}")
+            print(f"Error getting pull requests: {str(e)}")
             return []
 
     def get_recent_pull_requests(self, owner, repo, state="all", days=30):
         """Get recent pull requests from the repository."""
         try:
             github_repo = self.github.get_repo(f"{owner}/{repo}")
-            since = datetime.now() - timedelta(days=days)
+            since = datetime.now(timezone.utc) - timedelta(days=days)
             pulls = github_repo.get_pulls(state=state)
             result = []
             for pr in pulls:
@@ -212,10 +215,10 @@ class GitHubDataFetcherAgent:
                         "number": pr.number,
                         "title": pr.title,
                         "state": pr.state,
-                        "created_at": pr.created_at.isoformat(),
-                        "updated_at": pr.updated_at.isoformat(),
-                        "closed_at": pr.closed_at.isoformat() if pr.closed_at else None,
-                        "merged_at": pr.merged_at.isoformat() if pr.merged_at else None,
+                        "created_at": pr.created_at.replace(tzinfo=timezone.utc),
+                        "updated_at": pr.updated_at.replace(tzinfo=timezone.utc) if pr.updated_at else None,
+                        "closed_at": pr.closed_at.replace(tzinfo=timezone.utc) if pr.closed_at else None,
+                        "merged_at": pr.merged_at.replace(tzinfo=timezone.utc) if pr.merged_at else None,
                         "author": pr.user.login,
                         "url": pr.html_url,
                         "additions": pr.additions,
@@ -225,6 +228,30 @@ class GitHubDataFetcherAgent:
             return result
         except Exception as e:
             print(f"Error getting pull requests: {str(e)}")
+            return []
+
+    def get_recent_issues(self, owner, repo, state="all", days=30):
+        """Get recent issues from the repository."""
+        try:
+            github_repo = self.github.get_repo(f"{owner}/{repo}")
+            since = datetime.now(timezone.utc) - timedelta(days=days)
+            issues = github_repo.get_issues(state=state, since=since)
+            result = []
+            for issue in issues:
+                if not issue.pull_request:  # Exclude pull requests
+                    result.append({
+                        "number": issue.number,
+                        "title": issue.title,
+                        "state": issue.state,
+                        "created_at": issue.created_at.replace(tzinfo=timezone.utc),
+                        "updated_at": issue.updated_at.replace(tzinfo=timezone.utc) if issue.updated_at else None,
+                        "closed_at": issue.closed_at.replace(tzinfo=timezone.utc) if issue.closed_at else None,
+                        "author": issue.user.login if issue.user else None,
+                        "url": issue.html_url
+                    })
+            return result
+        except Exception as e:
+            print(f"Error getting issues: {str(e)}")
             return []
 
     def get_file_content(self, owner, repo, path, ref=None):

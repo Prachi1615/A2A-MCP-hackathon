@@ -5,8 +5,8 @@ import os
 import ast
 import re
 from collections import defaultdict
-import radon.metrics as metrics
-import radon.complexity as complexity
+from radon.raw import analyze
+from radon.complexity import cc_visit
 
 class CodeAnalysisAgent:
     def analyze_repo(self, repo_data, max_files=100):
@@ -94,9 +94,9 @@ class CodeAnalysisAgent:
                 'classes': [],
                 'imports': [],
                 'metrics': {
-                    'loc': len(code.splitlines()),
-                    'lloc': metrics.sloc(code),
-                    'complexity': complexity.cc_visit(code)
+                    'total_lines': len(code.splitlines()),
+                    'lloc': analyze(code).sloc,
+                    'complexity': len(cc_visit(code))
                 }
             }
 
