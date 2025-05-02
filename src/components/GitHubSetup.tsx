@@ -18,7 +18,7 @@ import { GitHub as GitHubIcon } from '@mui/icons-material';
 import { GitHubAuth } from './GitHubAuth';
 
 interface GitHubSetupProps {
-  onSetupComplete: (repoUrl: string, accessToken: string, metadata: RepositoryMetadata) => void;
+  onSetupComplete: (data: any) => void;
 }
 
 interface SetupData {
@@ -92,67 +92,63 @@ export const GitHubSetup: React.FC<GitHubSetupProps> = ({ onSetupComplete }) => 
     await fetchUserRepositories(accessToken);
   };
 
+
+  const startWorkflow = async (owner: string, repo: string) => {
+    setIsLoading(true);
+    const response = await fetch("http://localhost:8000/api/analyze-repo", {
+      method: 'POST',
+      headers: {
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.9',
+        'caller-type': 'operator',
+        'content-type': 'text/plain;charset=UTF-8',
+        'sec-ch-ua': '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'x-csrf-token': 'tjqD0BBZwqC0hECSPeayxqP6E5mDAhQ1',
+        'Referer': 'http://localhost:8233/namespaces/default/workflows/start-workflow?workflowId=2fcd3714-e619-45c9-9c72-7d654148bd72&taskQueue=github-task-queue&workflowType=GitHubRepoAnalysisWorkflow',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+      },
+      body: JSON.stringify({
+        owner: owner,
+        repo: repo
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to start workflow');
+    }
+
+    const data = await response.json();
+    setIsLoading(false);
+    onSetupComplete(data);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-      
       if (selectedRepo) {
-        // Use selected repository from dropdown
-        const response = await fetch(`${apiUrl}/api/setup/repository`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            repository_url: selectedRepo.html_url,
-            access_token: formData.accessToken,
-          }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to validate repository access');
-        }
-
-        const data = await response.json();
-        onSetupComplete(
-          selectedRepo.html_url,
-          formData.accessToken,
-          data
-        );
+        // Extract owner and repo name from the selected repository
+        const [owner, repo] = selectedRepo.full_name.split('/');
+        await startWorkflow(owner, repo);
+        
       } else {
         // Manual URL validation
-        const urlPattern = /^https:\/\/github\.com\/[\w-]+\/[.\w-]+\/?$/;
-        if (!urlPattern.test(formData.repoUrl)) {
+        const urlPattern = /^https:\/\/github\.com\/([\w-]+)\/([.\w-]+)\/?$/;
+        const match = formData.repoUrl.match(urlPattern);
+        
+        if (!match) {
           throw new Error('Please enter a valid GitHub repository URL (e.g., https://github.com/username/repository)');
         }
 
-        const response = await fetch(`${apiUrl}/api/setup/repository`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            repository_url: formData.repoUrl,
-            access_token: formData.accessToken || undefined,
-          }),
-        });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Failed to validate repository access');
-        }
-
-        const data = await response.json();
-        onSetupComplete(
-          formData.repoUrl,
-          formData.accessToken,
-          data
-        );
+        const [, owner, repo] = match;
+        await startWorkflow(owner, repo);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
