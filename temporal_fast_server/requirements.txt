@@ -1,0 +1,13 @@
+temporalio==1.11.0
+requests
+python-dotenv
+PyGithub
+networkx
+radon
+pandas
+matplotlib
+neo4j
+google-generativeai
+fastapi
+uvicorn
+dotenv
