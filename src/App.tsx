@@ -26,7 +26,7 @@ function App() {
   };
 
   const repoConfig = getRepoConfig();
-  const context = repoConfig?.metadata?.description || '';
+  const context = repoConfig?.markdown || '';
 
   return (
     <Router>
@@ -39,7 +39,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Layout apiKey={process.env.REACT_APP_VAPI_API_KEY || ''}>
-                    <Dashboard />
+                    <Dashboard markdownContent={context} />
                   </Layout>
                 </ProtectedRoute>
               }

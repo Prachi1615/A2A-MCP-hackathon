@@ -98,19 +98,8 @@ export const GitHubSetup: React.FC<GitHubSetupProps> = ({ onSetupComplete }) => 
     const response = await fetch("http://localhost:8000/api/analyze-repo", {
       method: 'POST',
       headers: {
-        'accept': '*/*',
-        'accept-language': 'en-US,en;q=0.9',
-        'caller-type': 'operator',
-        'content-type': 'text/plain;charset=UTF-8',
-        'sec-ch-ua': '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"macOS"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'x-csrf-token': 'tjqD0BBZwqC0hECSPeayxqP6E5mDAhQ1',
-        'Referer': 'http://localhost:8233/namespaces/default/workflows/start-workflow?workflowId=2fcd3714-e619-45c9-9c72-7d654148bd72&taskQueue=github-task-queue&workflowType=GitHubRepoAnalysisWorkflow',
-        'Referrer-Policy': 'strict-origin-when-cross-origin'
+        accept: "*/*",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
         owner: owner,

@@ -18,7 +18,7 @@ const Layout: React.FC<LayoutProps> = ({ children, apiKey }) => {
   };
 
   const repoConfig = getRepoConfig();
-  const context = repoConfig?.metadata?.description || '';
+  const context = repoConfig?.markdown || '';
 
   return (
     <Box sx={{ 
